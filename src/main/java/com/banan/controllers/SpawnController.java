@@ -34,8 +34,12 @@ public class SpawnController implements Listener {
         Bukkit.getPluginManager().registerEvents(this, ElysiumController.getInstance());
         Bukkit.getLogger().info("[Elysium] SpawnController включен.");
         
-        ElysiumController.getInstance().getConfig().set("spawn-control.enabled", true);
-        ElysiumController.getInstance().saveConfig();
+        // Сохраняем конфиг ТОЛЬКО если это ручной вызов (из команды)
+        // Для этого мы добавим простой флаг
+        if (!isLoading) {
+            ElysiumController.getInstance().getConfig().set("spawn-control.enabled", true);
+            ElysiumController.getInstance().saveConfig();
+        }
     }
 
     public void disable() {
@@ -49,8 +53,15 @@ public class SpawnController implements Listener {
         HandlerList.unregisterAll(this);
         Bukkit.getLogger().info("[Elysium] SpawnController выключен.");
         
-        ElysiumController.getInstance().getConfig().set("spawn-control.enabled", false);
-        ElysiumController.getInstance().saveConfig();
+        // Убираем отсюда сохранение конфига!
+        // Конфиг будет сохраняться только в команде.
+    }
+
+    // Добавляем флаг "загрузки"
+    private boolean isLoading = false;
+    
+    public void setLoading(boolean loading) {
+        this.isLoading = loading;
     }
     
     public boolean isEnabled() {

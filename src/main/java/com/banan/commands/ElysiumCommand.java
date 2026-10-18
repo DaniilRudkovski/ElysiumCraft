@@ -54,9 +54,17 @@ public class ElysiumCommand implements CommandExecutor {
             
             if (!spawnController.isEnabled()) {
                 spawnController.enable();
+                // СОХРАНЯЕМ В КОНФИГ ТОЛЬКО ЗДЕСЬ
+                plugin.getConfig().set("spawn-control.enabled", true);
+                plugin.saveConfig();
+                
                 player.sendMessage(Component.text("Модуль контроля спавна ВКЛЮЧЕН.").color(NamedTextColor.GREEN));
             } else {
                 spawnController.disable();
+                // СОХРАНЯЕМ В КОНФИГ ТОЛЬКО ЗДЕСЬ
+                plugin.getConfig().set("spawn-control.enabled", false);
+                plugin.saveConfig();
+                
                 player.sendMessage(Component.text("Модуль контроля спавна ВЫКЛЮЧЕН.").color(NamedTextColor.RED));
             }
             return true;
