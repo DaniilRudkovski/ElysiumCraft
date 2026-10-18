@@ -15,13 +15,13 @@ public class ElysiumController extends JavaPlugin {
     public void onEnable() {
         instance = this;
         getLogger().info("=== Запуск Elysium Controller ===");
-        saveDefaultConfig();
+        
+        saveDefaultConfig(); // <--- ОБЯЗАТЕЛЬНО ДОЛЖНО БЫТЬ ЗДЕСЬ
         getConfig().options().copyDefaults(true);
         saveConfig();
 
         spawnController = SpawnController.getInstance();
         
-        // ПРОВЕРЯЕМ КОНФИГ И АВТОМАТИЧЕСКИ ВКЛЮЧАЕМ МОДУЛЬ
         if (getConfig().getBoolean("spawn-control.enabled", false)) {
             getLogger().info("[Elysium] Обнаружено сохраненное состояние: модуль спавна был включен. Включаем...");
             spawnController.enable();
