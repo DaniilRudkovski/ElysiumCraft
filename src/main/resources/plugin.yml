@@ -1,0 +1,9 @@
+name: ElysiumController
+version: 1.0
+main: com.banan.core.ElysiumController
+api-version: '1.21'
+
+commands:
+  elysium:
+    description: Главная команда управления ядром Elysium
+    aliases: [ely]
