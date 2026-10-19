@@ -1,21 +1,37 @@
 package com.banan.utils;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+
+import java.util.UUID;
 
 public class MessageUtils {
 
-    // Отправляет кликабельную кнопку игроку (используя Adventure API)
-    public static void sendClickableButton(Player player, String text, String hoverText, String command) {
-        // MiniMessage позволяет использовать цвета прямо в тексте (например, <yellow>)
-        // Но так как мы передаем обычные строки с ChatColor, мы переведем их в компоненты
-        Component button = MiniMessage.miniMessage().deserialize(text.replace('§', '&'))
-                .clickEvent(ClickEvent.runCommand(command))
-                .hoverEvent(HoverEvent.showText(MiniMessage.miniMessage().deserialize(hoverText.replace('§', '&'))));
+    // UUID больше не используем, чтобы не было ошибок
+    public static final UUID MENU_ID = UUID.randomUUID();
 
-        player.sendMessage(button);
+    // Отправка обычного текста
+    public static void sendMenu(Player player, String... messages) {
+        for (String msg : messages) {
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+        }
+    }
+
+    // Отправка кликабельной кнопки через Bungee API (работает без ошибок)
+    public static void sendClickableButton(Player player, String text, String hoverText, String command) {
+        String legacyText = ChatColor.translateAlternateColorCodes('&', text);
+        String legacyHover = ChatColor.translateAlternateColorCodes('&', hoverText);
+
+        TextComponent button = new TextComponent(TextComponent.fromLegacyText(legacyText));
+        button.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command));
+        button.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, 
+                new ComponentBuilder(legacyHover).create()));
+        
+        // Отправляем через Bungee API
+        player.spigot().sendMessage(button);
     }
 }

@@ -1,9 +1,3 @@
-# Elysium Controller Configuration
-
-# Список миров, в которых работает контроль спавна (модуль SpawnRule).
-# В этих мирах геймрул spawn_mobs будет принудительно включен, 
-# чтобы работали рассадники испытаний, но обычные мобы будут отменяться.
 spawn-control:
-  enabled: false # По умолчанию выключен
-  enabled-worlds:
-    - "world"
+  enabled: false
+  worlds: {}

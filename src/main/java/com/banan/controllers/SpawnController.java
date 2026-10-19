@@ -1,8 +1,6 @@
 package com.banan.controllers;
 
 import com.banan.core.ElysiumController;
-import com.banan.modules.Rule;
-import com.banan.modules.Spawn.SpawnRule;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,57 +9,27 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class SpawnController implements Listener {
 
     private boolean isEnabled = false;
-    private final List<Rule> rules = new ArrayList<>();
 
     private SpawnController() {
-        rules.add(new SpawnRule());
     }
 
     public void enable() {
         if (isEnabled) return;
         isEnabled = true;
         
-        for (Rule rule : rules) {
-            rule.setIsActive(true);
-        }
-        
         Bukkit.getPluginManager().registerEvents(this, ElysiumController.getInstance());
         Bukkit.getLogger().info("[Elysium] SpawnController включен.");
-        
-        // Сохраняем конфиг ТОЛЬКО если это ручной вызов (из команды)
-        // Для этого мы добавим простой флаг
-        if (!isLoading) {
-            ElysiumController.getInstance().getConfig().set("spawn-control.enabled", true);
-            ElysiumController.getInstance().saveConfig();
-        }
     }
 
     public void disable() {
         if (!isEnabled) return;
         isEnabled = false;
         
-        for (Rule rule : rules) {
-            rule.setIsActive(false);
-        }
-        
         HandlerList.unregisterAll(this);
         Bukkit.getLogger().info("[Elysium] SpawnController выключен.");
-        
-        // Убираем отсюда сохранение конфига!
-        // Конфиг будет сохраняться только в команде.
-    }
-
-    // Добавляем флаг "загрузки"
-    private boolean isLoading = false;
-    
-    public void setLoading(boolean loading) {
-        this.isLoading = loading;
     }
     
     public boolean isEnabled() {
@@ -72,31 +40,48 @@ public class SpawnController implements Listener {
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (!isEnabled) return;
 
+        // Получаем имя мира
         String worldName = event.getLocation().getWorld().getName();
-        List<String> enabledWorlds = ElysiumController.getInstance().getConfig().getStringList("spawn-control.enabled-worlds");
-
-        if (!enabledWorlds.contains(worldName)) return; 
-
-        // МАГИЯ: Принудительно разрешаем спавнеры (ломаем проверку света)
-        if (event.getSpawnReason() == SpawnReason.SPAWNER) {
-            event.setCancelled(false);
+        
+        // Проверяем, есть ли вообще настройки для этого мира
+        if (!ElysiumController.getInstance().getConfig().contains("spawn-control.worlds." + worldName)) {
+            return; 
         }
 
-        // Прогоняем через правила
-        boolean shouldCancel = false;
-        for (Rule rule : rules) {
-            rule.handleEvent(event);
-        }
+        SpawnReason reason = event.getSpawnReason();
 
-        for (Rule rule : rules) {
-            if (!rule.isEventApplied()) { 
-                shouldCancel = true;
-                break;
+        // 1. Обычный спавн
+        if (reason == SpawnReason.NATURAL) {
+            boolean naturalEnabled = ElysiumController.getInstance().getConfig()
+                    .getBoolean("spawn-control.worlds." + worldName + ".natural", false);
+            
+            if (!naturalEnabled) {
+                event.setCancelled(true);
             }
         }
 
-        if (shouldCancel) {
-            event.setCancelled(true);
+        // 2. Спавнеры
+        if (reason == SpawnReason.SPAWNER) {
+            boolean spawnerEnabled = ElysiumController.getInstance().getConfig()
+                    .getBoolean("spawn-control.worlds." + worldName + ".spawner", false);
+            
+            if (spawnerEnabled) {
+                event.setCancelled(false);
+            } else {
+                event.setCancelled(true);
+            }
+        }
+
+        // 3. Рассадники
+        if (reason == SpawnReason.TRIAL_SPAWNER) {
+            boolean trialEnabled = ElysiumController.getInstance().getConfig()
+                    .getBoolean("spawn-control.worlds." + worldName + ".trial", false);
+            
+            if (trialEnabled) {
+                event.setCancelled(false);
+            } else {
+                event.setCancelled(true);
+            }
         }
     }
 
