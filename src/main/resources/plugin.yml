@@ -6,4 +6,3 @@ api-version: '1.21'
 commands:
   elysium:
     description: Главная команда управления ядром Elysium
-    aliases: [ely]

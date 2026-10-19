@@ -1,3 +1,6 @@
 spawn-control:
   enabled: false
+  settings:
+    delay: 160   # Задержка в тиках (40 = 2 секунды)
+    radius: 10  # Радиус в блоках
   worlds: {}

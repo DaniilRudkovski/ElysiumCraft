@@ -32,6 +32,78 @@ public class ElysiumCommand implements CommandExecutor {
             return true;
         }
 
+        // --- Команда регистрации спавнеров ---
+        if (args[0].equalsIgnoreCase("functions") && args.length > 1 && args[1].equalsIgnoreCase("recalcspawners")) {
+            org.bukkit.World world = player.getWorld();
+            int radius = 32; // Ищем в радиусе 32 блоков
+            
+            int cx = player.getLocation().getBlockX() >> 4;
+            int cz = player.getLocation().getBlockZ() >> 4;
+            int chunksRadius = radius >> 4;
+            
+            java.util.List<String> spawnerList = new java.util.ArrayList<>();
+            int found = 0;
+            
+            for (int x = cx - chunksRadius; x <= cx + chunksRadius; x++) {
+                for (int z = cz - chunksRadius; z <= cz + chunksRadius; z++) {
+                    if (!world.isChunkLoaded(x, z)) continue;
+                    
+                    for (org.bukkit.block.BlockState state : world.getChunkAt(x, z).getTileEntities()) {
+                        if (state instanceof org.bukkit.block.CreatureSpawner) {
+                            String locStr = state.getX() + "," + state.getY() + "," + state.getZ();
+                            spawnerList.add(locStr);
+                            found++;
+                        }
+                    }
+                }
+            }
+            
+            if (found == 0) {
+                player.sendMessage(ChatColor.RED + "Спавнеры не найдены в радиусе " + radius + " блоков.");
+                return true;
+            }
+            
+            // Сохраняем список в конфиг
+            plugin.getConfig().set("spawn-control.custom-spawner-list." + world.getName(), spawnerList);
+            plugin.saveConfig();
+            plugin.getSpawnController().reloadCustomSpawners();
+            
+            player.sendMessage(ChatColor.GREEN + "Зарегистрировано спавнеров: " + found + " в мире " + world.getName());
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("functions") && args.length > 3 && args[1].equalsIgnoreCase("customspawnerset")) {
+            String setting = args[2].toLowerCase();
+            String valueStr = args[3];
+            
+            try {
+                int value = Integer.parseInt(valueStr);
+                
+                if (setting.equals("delay")) {
+                    plugin.getConfig().set("spawn-control.settings.delay", value);
+                    plugin.saveConfig();
+                    // Перезапускаем таймер с новой задержкой (для этого вызовем reload)
+                    plugin.getSpawnController().reloadTimer();
+                    player.sendMessage(ChatColor.GREEN + "Задержка спавна установлена на " + value + " тиков.");
+                    return true;
+                }
+                
+                if (setting.equals("radius")) {
+                    plugin.getConfig().set("spawn-control.settings.radius", value);
+                    plugin.saveConfig();
+                    // Перезапускаем таймер с новым радиусом (для этого вызовем reload)
+                    plugin.getSpawnController().reloadTimer();
+                    player.sendMessage(ChatColor.GREEN + "Радиус спавна установлен на " + value + " блоков.");
+                    return true;
+                }
+                
+                player.sendMessage(ChatColor.RED + "Неизвестная настройка. Доступно: delay, radius.");
+            } catch (NumberFormatException e) {
+                player.sendMessage(ChatColor.RED + "Введи число!");
+            }
+            return true;
+        }
+
         if (args[0].equalsIgnoreCase("spawn")) {
             SpawnController sc = plugin.getSpawnController();
             
@@ -87,8 +159,8 @@ public class ElysiumCommand implements CommandExecutor {
 
             String state = args[3].toLowerCase();
 
-            if (!type.equals("natural") && !type.equals("spawner") && !type.equals("trial")) {
-                player.sendMessage(ChatColor.RED + "Неизвестный тип. Доступно: natural, spawner, trial.");
+            if (!type.equals("natural") && !type.equals("spawner") && !type.equals("trial") && !type.equals("customspawn")) {
+                player.sendMessage(ChatColor.RED + "Неизвестный тип. Доступно: natural, spawner, trial, customspawn.");
                 return true;
             }
 
