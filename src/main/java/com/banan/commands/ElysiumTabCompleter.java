@@ -18,7 +18,7 @@ public class ElysiumTabCompleter implements TabCompleter {
         // 1. Первый аргумент
         if (args.length == 1) {
             completions.add("spawn");
-            completions.add("functions"); // <--- ДОБАВИТЬ ЭТО
+            completions.add("functions");
         }
 
         // 2. Второй аргумент (после /elysium spawn)
@@ -31,6 +31,8 @@ public class ElysiumTabCompleter implements TabCompleter {
                 completions.add(world.getName());
             }
         }
+
+        
 
         if (args.length == 2 && args[0].equalsIgnoreCase("functions")) {
             completions.add("recalcspawners");
@@ -46,8 +48,7 @@ public class ElysiumTabCompleter implements TabCompleter {
             if (args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable")) {
                 return new ArrayList<>();
             }
-            // Добавляем customspawn сюда:
-            completions.addAll(Arrays.asList("init", "natural", "spawner", "trial", "customspawn")); 
+            completions.addAll(Arrays.asList("init", "remove", "natural", "spawner", "trial", "customspawn")); 
         }
 
         // 4. Четвертый аргумент (после /elysium spawn <мир> <тип>)

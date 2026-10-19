@@ -135,6 +135,20 @@ public class ElysiumCommand implements CommandExecutor {
             String type = args[2].toLowerCase();
             String basePath = "spawn-control.worlds." + worldName;
 
+            // 0. Удаление мира из конфига
+            if (type.equals("remove")) {
+                if (!plugin.getConfig().contains(basePath)) {
+                    player.sendMessage(ChatColor.RED + "Мира " + worldName + " нет в конфиге.");
+                    return true;
+                }
+                
+                plugin.getConfig().set(basePath, null); // Удаляем всю ветку мира
+                plugin.saveConfig();
+                
+                player.sendMessage(ChatColor.GREEN + "Мир " + worldName + " полностью удален из конфига.");
+                return true;
+            }
+
             // 1. Инициализация
             if (type.equals("init")) {
                 if (plugin.getConfig().contains(basePath)) {
