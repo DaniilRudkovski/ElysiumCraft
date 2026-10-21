@@ -32,17 +32,6 @@ public class ElysiumTabCompleter implements TabCompleter {
             }
         }
 
-        
-
-        if (args.length == 2 && args[0].equalsIgnoreCase("functions")) {
-            completions.add("recalcspawners");
-            completions.add("customspawnerset");
-        }
-
-        if (args.length == 3 && args[0].equalsIgnoreCase("functions") && args[1].equalsIgnoreCase("customspawnerset")) {
-            completions.addAll(Arrays.asList("delay", "radius")); // <--- ДОБАВИТЬ
-        }
-
         // 3. Третий аргумент (после /elysium spawn <мир>)
         if (args.length == 3 && args[0].equalsIgnoreCase("spawn")) {
             if (args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable")) {
@@ -51,11 +40,24 @@ public class ElysiumTabCompleter implements TabCompleter {
             completions.addAll(Arrays.asList("init", "remove", "natural", "spawner", "trial", "customspawn")); 
         }
 
-        // 4. Четвертый аргумент (после /elysium spawn <мир> <тип>)
-        if (args.length == 4 && args[0].equalsIgnoreCase("spawn")) {
-            if (!args[2].equalsIgnoreCase("init")) {
-                completions.addAll(Arrays.asList("on", "off"));
-            }
+               // Второй аргумент (после /elysium functions)
+        if (args.length == 2 && args[0].equalsIgnoreCase("functions")) {
+            completions.add("recalcspawners");
+            completions.add("customspawnerset"); 
+        }
+        
+        // Третий аргумент (после /elysium functions recalcspawners)
+        if (args.length == 3 && args[0].equalsIgnoreCase("functions") && args[1].equalsIgnoreCase("recalcspawners")) {
+            completions.addAll(Arrays.asList("addall", "deleteall", "clearunused"));
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("functions") && args[1].equalsIgnoreCase("customspawnerset")) {
+            completions.addAll(Arrays.asList("delay", "radius", "limitmobs", "limitradius"));
+        }
+        
+        // Четвертый аргумент (после /elysium functions recalcspawners <addall/deleteall>)
+        if (args.length == 4 && args[0].equalsIgnoreCase("functions") && args[1].equalsIgnoreCase("recalcspawners")) {
+            completions.addAll(Arrays.asList("16", "32", "64", "128"));
         }
 
         // Фильтрация

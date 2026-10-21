@@ -18,6 +18,12 @@ public class ElysiumCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // ПРОВЕРКА ПРАВ
+        if (!sender.hasPermission("elysium.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав на использование этой команды!");
+            return true;
+        }
+
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Только для игроков.");
             return true;
@@ -32,44 +38,153 @@ public class ElysiumCommand implements CommandExecutor {
             return true;
         }
 
-        // --- Команда регистрации спавнеров ---
-        if (args[0].equalsIgnoreCase("functions") && args.length > 1 && args[1].equalsIgnoreCase("recalcspawners")) {
-            org.bukkit.World world = player.getWorld();
-            int radius = 32; // Ищем в радиусе 32 блоков
+        // --- Команды регистрации спавнеров ---
+        if (args[0].equalsIgnoreCase("functions") && args.length > 1) {
             
-            int cx = player.getLocation().getBlockX() >> 4;
-            int cz = player.getLocation().getBlockZ() >> 4;
-            int chunksRadius = radius >> 4;
-            
-            java.util.List<String> spawnerList = new java.util.ArrayList<>();
-            int found = 0;
-            
-            for (int x = cx - chunksRadius; x <= cx + chunksRadius; x++) {
-                for (int z = cz - chunksRadius; z <= cz + chunksRadius; z++) {
-                    if (!world.isChunkLoaded(x, z)) continue;
-                    
-                    for (org.bukkit.block.BlockState state : world.getChunkAt(x, z).getTileEntities()) {
-                        if (state instanceof org.bukkit.block.CreatureSpawner) {
-                            String locStr = state.getX() + "," + state.getY() + "," + state.getZ();
-                            spawnerList.add(locStr);
-                            found++;
-                        }
+            // Проверяем, что ввели именно recalcspawners
+            if (args[1].equalsIgnoreCase("recalcspawners")) {
+                
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Используй: /elysium functions recalcspawners <addall/deleteall> <радиус>");
+                    return true;
+                }
+
+                String action = args[2].toLowerCase();
+                org.bukkit.World world = player.getWorld();
+                String path = "spawn-control.custom-spawner-list." + world.getName();
+                
+                // Радиус по умолчанию 64
+                int radius = 64;
+                if (args.length > 3) {
+                    try {
+                        radius = Integer.parseInt(args[3]);
+                    } catch (NumberFormatException e) {
+                        player.sendMessage(ChatColor.RED + "Радиус должен быть числом!");
+                        return true;
                     }
                 }
-            }
-            
-            if (found == 0) {
-                player.sendMessage(ChatColor.RED + "Спавнеры не найдены в радиусе " + radius + " блоков.");
+
+                // --- CLEARUNUSED ---
+                if (action.equals("clearunused")) {
+                    java.util.List<String> spawnerList = new java.util.ArrayList<>(plugin.getConfig().getStringList(path));
+                    
+                    if (spawnerList.isEmpty()) {
+                        player.sendMessage(ChatColor.RED + "База спавнеров пуста.");
+                        return true;
+                    }
+
+                    int removed = 0;
+                    java.util.Iterator<String> iterator = spawnerList.iterator();
+                    
+                    while (iterator.hasNext()) {
+                        String locStr = iterator.next();
+                        String[] parts = locStr.split(",");
+                        if (parts.length == 3) {
+                            try {
+                                int x = Integer.parseInt(parts[0]);
+                                int y = Integer.parseInt(parts[1]);
+                                int z = Integer.parseInt(parts[2]);
+                                
+                                // Проверяем, существует ли блок по этим координатам и является ли он спавнером
+                                org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                                if (block.getType() != org.bukkit.Material.SPAWNER) {
+                                    iterator.remove();
+                                    removed++;
+                                }
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+
+                    if (removed > 0) {
+                        plugin.getConfig().set(path, spawnerList);
+                        plugin.saveConfig();
+                        plugin.getSpawnController().reloadCustomSpawners();
+                        player.sendMessage(ChatColor.GREEN + "Очистка завершена. Удалено мертвых спавнеров: " + removed + ". Осталось: " + spawnerList.size());
+                    } else {
+                        player.sendMessage(ChatColor.YELLOW + "Мертвых спавнеров не найдено. В базе: " + spawnerList.size());
+                    }
+                    return true;
+                }
+
+                // --- ADDALL ---
+                if (action.equals("addall")) {
+                    java.util.List<String> spawnerList = new java.util.ArrayList<>(plugin.getConfig().getStringList(path));
+                    
+                    int cx = player.getLocation().getBlockX() >> 4;
+                    int cz = player.getLocation().getBlockZ() >> 4;
+                    int chunksRadius = radius >> 4;
+                    
+                    int added = 0;
+                    int found = 0;
+
+                    for (int x = cx - chunksRadius; x <= cx + chunksRadius; x++) {
+                        for (int z = cz - chunksRadius; z <= cz + chunksRadius; z++) {
+                            if (!world.isChunkLoaded(x, z)) continue;
+                            
+                            for (org.bukkit.block.BlockState state : world.getChunkAt(x, z).getTileEntities()) {
+                                if (state instanceof org.bukkit.block.CreatureSpawner) {
+                                    String locStr = state.getX() + "," + state.getY() + "," + state.getZ();
+                                    found++;
+                                    
+                                    if (!spawnerList.contains(locStr)) {
+                                        spawnerList.add(locStr);
+                                        added++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    plugin.getConfig().set(path, spawnerList);
+                    plugin.saveConfig();
+                    plugin.getSpawnController().reloadCustomSpawners();
+                    
+                    player.sendMessage(ChatColor.GREEN + "Найдено: " + found + ". Добавлено новых: " + added + ". Всего в базе: " + spawnerList.size());
+                    return true;
+                }
+
+                // --- DELETEALL ---
+                if (action.equals("deleteall")) {
+                    java.util.List<String> spawnerList = new java.util.ArrayList<>(plugin.getConfig().getStringList(path));
+                    
+                    if (spawnerList.isEmpty()) {
+                        player.sendMessage(ChatColor.RED + "База спавнеров пуста.");
+                        return true;
+                    }
+
+                    int removed = 0;
+                    java.util.Iterator<String> iterator = spawnerList.iterator();
+                    
+                    while (iterator.hasNext()) {
+                        String locStr = iterator.next();
+                        String[] parts = locStr.split(",");
+                        if (parts.length == 3) {
+                            try {
+                                int x = Integer.parseInt(parts[0]);
+                                int y = Integer.parseInt(parts[1]);
+                                int z = Integer.parseInt(parts[2]);
+                                
+                                double dist = player.getLocation().distanceSquared(new org.bukkit.Location(world, x, y, z));
+                                
+                                if (dist <= (radius * radius)) {
+                                    iterator.remove();
+                                    removed++;
+                                }
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+
+                    plugin.getConfig().set(path, spawnerList);
+                    plugin.saveConfig();
+                    plugin.getSpawnController().reloadCustomSpawners();
+                    
+                    player.sendMessage(ChatColor.GREEN + "Удалено спавнеров из базы: " + removed + ". Осталось: " + spawnerList.size());
+                    return true;
+                }
+
+                player.sendMessage(ChatColor.RED + "Неизвестное действие. Доступно: addall, deleteall.");
                 return true;
             }
-            
-            // Сохраняем список в конфиг
-            plugin.getConfig().set("spawn-control.custom-spawner-list." + world.getName(), spawnerList);
-            plugin.saveConfig();
-            plugin.getSpawnController().reloadCustomSpawners();
-            
-            player.sendMessage(ChatColor.GREEN + "Зарегистрировано спавнеров: " + found + " в мире " + world.getName());
-            return true;
         }
 
         if (args[0].equalsIgnoreCase("functions") && args.length > 3 && args[1].equalsIgnoreCase("customspawnerset")) {
@@ -94,6 +209,21 @@ public class ElysiumCommand implements CommandExecutor {
                     // Перезапускаем таймер с новым радиусом (для этого вызовем reload)
                     plugin.getSpawnController().reloadTimer();
                     player.sendMessage(ChatColor.GREEN + "Радиус спавна установлен на " + value + " блоков.");
+                    return true;
+                }
+
+                if (setting.equals("limitmobs")) {
+                    plugin.getConfig().set("spawn-control.settings.limitmobs", value);
+                    plugin.saveConfig();
+                    player.sendMessage(ChatColor.GREEN + "Лимит мобов (limitmobs) установлен на " + value + ".");
+                    return true;
+                }
+
+                if (setting.equals("limitradius")) {
+                    plugin.getConfig().set("spawn-control.settings.limitradius", value);
+                    plugin.saveConfig();
+                    // Перезапуск не нужен, так как мы читаем это значение каждый тик
+                    player.sendMessage(ChatColor.GREEN + "Радиус подсчета мобов (limitradius) установлен на " + value + " блоков.");
                     return true;
                 }
                 

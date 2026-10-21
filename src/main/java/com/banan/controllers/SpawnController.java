@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -71,6 +72,24 @@ public class SpawnController implements Listener {
                         if (block.getType() == Material.SPAWNER && block.getState() instanceof CreatureSpawner spawner) {
                             EntityType type = spawner.getSpawnedType();
                             if (type != null) {
+                                // --- ПРОВЕРКА ЛИМИТА ---
+                                int limitmobs = ElysiumController.getInstance().getConfig().getInt("spawn-control.settings.limitmobs", 10);
+                                int limitRadius = ElysiumController.getInstance().getConfig().getInt("spawn-control.settings.limitradius", 8);
+                                
+                                // Считаем мобов этого типа в радиусе limitRadius блоков от спавнера
+                                int nearbyCount = 0;
+                                for (Entity entity : loc.getWorld().getNearbyEntities(loc, limitRadius, limitRadius, limitRadius)) {
+                                    if (entity.getType() == type) {
+                                        nearbyCount++;
+                                    }
+                                }
+
+                                // Если мобов больше лимита — пропускаем спавн
+                                if (nearbyCount >= limitmobs) {
+                                    continue; 
+                                }
+                                // -----------------------
+
                                 // СПАВНИМ НА 1 БЛОК ВЫШЕ (чтобы не застревали)
                                 Location spawnLoc = loc.clone().add(0, 1, 0);
                                 loc.getWorld().spawn(spawnLoc, type.getEntityClass(), SpawnReason.CUSTOM);

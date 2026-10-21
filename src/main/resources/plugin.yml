@@ -6,3 +6,5 @@ api-version: '1.21'
 commands:
   elysium:
     description: Главная команда управления ядром Elysium
+    permission: elysium.admin
+    permission-message: §cУ вас нет прав на использование этой команды!
